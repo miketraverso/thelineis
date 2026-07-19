@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
+  <link rel="shortcut icon" href="favicon/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="favicon/site.webmanifest" />
+  <title>🗡️💀 Masters of the Universe Countdown</title>
+  <!-- Import Skranji font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Skranji&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Skranji', cursive;
+      color: #fff;
+      /* Free-license background image from Unsplash using fantasy keywords */
+      background: url('images/a7bdf889-dfc4-4d5b-8dc3-e4f36e79bb6f.webp') no-repeat center center fixed;
+      background-size: cover;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .counter-container {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      margin: 20px;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 0;
+      text-shadow: 2px 2px 4px #000;
+    }
+    p {
+      margin: 10px 0;
+      font-size: 1.2em;
+    }
+    .counter {
+      font-size: 4em;
+      margin: 20px 0;
+      color: #FFD700;
+      text-shadow: 2px 2px 4px #000;
+    }
+    .attribution {
+      position: absolute;
+      bottom: 10px;
+      font-size: 0.8em;
+      color: #ccc;
+    }
+    .attribution a {
+      color: #FFD700;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="counter-container">
+    <h1>Masters of the Universe</h1>
+    <h3>Time since Scott proclaimed the line dead...</h3>
+    <div id="counter" class="counter">0</div>
+  </div>
+
+  <script>
+    // Define the start date (using April 1, 2022 as the starting point)
+    const startDate = new Date("2023-01-12T00:00:00");
+
+    function updateCounter() {
+      const now = new Date();
+      const diffTime = now - startDate;
+
+      // Calculate total days
+      const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // Calculate years and remaining days
+      const years = Math.floor(totalDays / 365);
+      const days = totalDays % 365;
+
+      // Calculate hours, minutes, seconds
+      const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diffTime % (1000 * 60)) / 1000);
+
+      // Format hours, minutes, seconds with leading zeros if needed
+      const formattedHours = hours.toString().padStart(2, '0');
+      const formattedMinutes = minutes.toString().padStart(2, '0');
+      const formattedSeconds = seconds.toString().padStart(2, '0');
+
+      // Display the countdown in the format: X years Y days HH:MM:SS
+      document.getElementById('counter').innerText = 
+        years + " years, " + days + " days\n" + formattedHours + ":" + formattedMinutes + ":" + formattedSeconds;
+    }
+
+    // Initialize the counter on page load
+    updateCounter();
+    // Update the counter every second
+    setInterval(updateCounter, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duck Race!</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(160deg, #0f2027, #203a43, #2c5364);
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 0; color: #fff; overflow-x: hidden;
+    }
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(2rem, 5vw, 3.5rem); color: #FFD700;
+      text-shadow: 3px 3px 0 #b8860b, 0 0 20px rgba(255,215,0,0.4);
+      letter-spacing: 2px; margin-bottom: 6px; text-align: center; padding: 0 16px;
+    }
+    .subtitle { font-size: 1rem; color: rgba(255,255,255,0.6); margin-bottom: 10px; text-align: center; letter-spacing: 1px; }
+    .setup-panel {
+      background: rgba(255,255,255,0.95); border-radius: 24px; padding: 28px 32px;
+      width: 100%; max-width: 560px; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      color: #1a1a2e; margin-bottom: 24px;
+    }
+    .setup-panel label { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #555; display: block; margin-bottom: 8px; }
+    .setup-panel textarea {
+      width: 100%; height: 130px; border: 2px solid #e0e0e0; border-radius: 14px;
+      padding: 12px 16px; font-family: 'Nunito', sans-serif; font-size: 1rem;
+      color: #1a1a2e; resize: vertical; outline: none; transition: border-color 0.2s; margin-bottom: 20px;
+    }
+    .setup-panel textarea:focus { border-color: #1E90FF; }
+    .timer-options { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+    .timer-btn {
+      flex: 1; min-width: 80px; padding: 12px 8px; border: 2px solid #e0e0e0;
+      border-radius: 14px; background: #f8f8f8; font-family: 'Nunito', sans-serif;
+      font-size: 1rem; font-weight: 700; color: #555; cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .timer-btn:hover { border-color: #1E90FF; color: #1E90FF; background: #EBF5FF; }
+    .timer-btn.selected { border-color: #1E90FF; background: #1E90FF; color: #fff; }
+    .start-btn {
+      width: 100%; padding: 16px; border: none; border-radius: 16px;
+      background: linear-gradient(135deg, #FFD700, #FF8C00); font-family: 'Fredoka One', cursive;
+      font-size: 1.4rem; color: #1a1a2e; cursor: pointer; letter-spacing: 1px;
+      box-shadow: 0 6px 20px rgba(255,165,0,0.5); transition: all 0.2s;
+    }
+    .start-btn:hover { transform: translateY(-2px); }
+    .start-btn:active { transform: translateY(0); }
+    .start-btn:disabled { background: #ccc; color: #999; box-shadow: none; cursor: not-allowed; transform: none; }
+    #race-screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .timer-display {
+      font-family: 'Fredoka One', cursive; font-size: clamp(2.5rem, 8vw, 5rem);
+      color: #FFD700; text-shadow: 3px 3px 0 #b8860b; margin-bottom: 10px; text-align: center; transition: color 0.3s;
+    }
+    .timer-display.urgent { color: #FF4500; text-shadow: 3px 3px 0 #8B0000; animation: pulse 0.5s infinite; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+    #race-canvas {
+      display: block; width: 100vw;
+      border-top: 3px solid rgba(255,255,255,0.3);
+      border-bottom: 3px solid rgba(255,255,255,0.3);
+    }
+    .winner-banner {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      align-items: center; justify-content: center; flex-direction: column; animation: fadeIn 0.5s;
+    }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .winner-banner.show { display: flex; }
+    .winner-card {
+      background: linear-gradient(135deg, #FFD700, #FF8C00); border-radius: 28px;
+      padding: 40px 60px; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+      animation: popIn 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
+    }
+    @keyframes popIn { from{transform:scale(0.3) rotate(-10deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+    .winner-card h2 { font-family: 'Fredoka One', cursive; font-size: 2rem; color: #1a1a2e; margin-bottom: 4px; }
+    .winner-name { font-family: 'Fredoka One', cursive; font-size: 3rem; color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,0.3); margin: 8px 0 20px; }
+    .play-again-btn {
+      background: #1a1a2e; color: #FFD700; border: none; border-radius: 14px;
+      padding: 14px 32px; font-family: 'Fredoka One', cursive; font-size: 1.3rem; cursor: pointer; transition: all 0.2s;
+    }
+    .play-again-btn:hover { background: #2c2c4e; transform: scale(1.05); }
+  </style>
+</head>
+<body>
+
+<h1>🦆 Duck Race!</h1>
+<p class="subtitle">Enter names, pick a timer, and may the best duck win!</p>
+
+<div class="setup-panel" id="setup-screen">
+  <label>Racers (one name per line)</label>
+  <textarea id="names-input" placeholder="Alice&#10;Bob&#10;Charlie&#10;Diana&#10;Evan"></textarea>
+  <label>Race Duration</label>
+  <div class="timer-options">
+    <button class="timer-btn" data-seconds="30">30 sec</button>
+    <button class="timer-btn selected" data-seconds="60">60 sec</button>
+    <button class="timer-btn" data-seconds="90">90 sec</button>
+    <button class="timer-btn" data-seconds="120">120 sec</button>
+  </div>
+  <button class="start-btn" id="start-btn">🏁 Start Race!</button>
+</div>
+
+<div id="race-screen">
+  <div class="timer-display" id="timer-display">1:00</div>
+  <canvas id="race-canvas"></canvas>
+</div>
+
+<div class="winner-banner" id="winner-banner">
+  <div class="winner-card">
+    <div style="font-size:4rem;margin-bottom:8px;">🏆</div>
+    <h2>Winner!</h2>
+    <div class="winner-name" id="winner-name">Alice</div>
+    <div style="font-size:1rem;color:rgba(255,255,255,0.8);margin-bottom:20px;">Crossed the finish line first!</div>
+    <button class="play-again-btn" id="play-again-btn">🔄 Play Again</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────
+const DUCK_COLORS = [
+  '#FFD700','#FF6B6B','#4ECDC4','#95E1D3','#F38181','#FCE38A',
+  '#EAFFD0','#95D5B2','#FFA07A','#87CEEB','#DDA0DD','#98FB98',
+  '#F0E68C','#FF69B4','#00CED1','#FFA500'
+];
+// Track height — 75% of viewport, minimum 500px
+function getTrackH() { return Math.max(500, Math.floor(window.innerHeight * 0.75)); }
+
+const SKY_FRAC   = 0.20;
+const STRIPE_W   = 80;
+
+// Duck size scales down for large fields
+function getDuckSize(count) {
+  if (count >=  200) return 32;
+  return 44;
+}
+
+// Live duck size (set when race starts)
+let DUCK_W = 44;
+let DUCK_H = 44;
+
+// Finish line SVG — 31px wide, left edge is the leading edge
+const FL_SVG_W = 31;
+const FL_SVG_H = 400;
+let finishLineImg = null;
+let finishLineReady = false;
+
+function loadFinishLineImg() {
+  const svgStr = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="31px" height="400px" viewBox="0 0 31 400" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" fill-rule="evenodd">
+    <g>
+      <rect stroke="#000000" fill="#FFFFFF" x="0.5" y="0.5" width="30" height="399"/>
+      <g fill="#000000">
+        <g transform="translate(0,0)">
+          <rect x="0" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/>
+          <rect x="10" y="10.03" width="10" height="10"/><rect x="10" y="30.03" width="10" height="10"/>
+          <rect x="0" y="20.03" width="10" height="10"/><rect x="20" y="20.03" width="10" height="10"/>
+        </g>
+        <g transform="translate(15,89.99) rotate(180) translate(-15,-89.99) translate(0,69.97)">
+          <rect x="0" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/>
+          <rect x="10" y="10.03" width="10" height="10"/><rect x="10" y="30.03" width="10" height="10"/>
+          <rect x="0" y="20.03" width="10" height="10"/><rect x="20" y="20.03" width="10" height="10"/>
+        </g>
+        <rect transform="translate(25,105) rotate(180) translate(-25,-105)" x="20" y="100" width="10" height="10"/>
+        <rect transform="translate(5,105) rotate(180) translate(-5,-105)" x="0" y="100" width="10" height="10"/>
+        <rect transform="translate(15,255) rotate(180) translate(-15,-255)" x="10" y="250" width="10" height="10"/>
+        <rect transform="translate(15,235) rotate(180) translate(-15,-235)" x="10" y="230" width="10" height="10"/>
+        <rect transform="translate(25,245) rotate(180) translate(-25,-245)" x="20" y="240" width="10" height="10"/>
+        <rect transform="translate(5,245) rotate(180) translate(-5,-245)" x="0" y="240" width="10" height="10"/>
+        <rect transform="translate(15,275) rotate(180) translate(-15,-275)" x="10" y="270" width="10" height="10"/>
+        <rect transform="translate(25,265) rotate(180) translate(-25,-265)" x="20" y="260" width="10" height="10"/>
+        <rect transform="translate(5,265) rotate(180) translate(-5,-265)" x="0" y="260" width="10" height="10"/>
+        <rect transform="translate(15,295) rotate(180) translate(-15,-295)" x="10" y="290" width="10" height="10"/>
+        <rect transform="translate(25,285) rotate(180) translate(-25,-285)" x="20" y="280" width="10" height="10"/>
+        <rect transform="translate(5,285) rotate(180) translate(-5,-285)" x="0" y="280" width="10" height="10"/>
+        <rect transform="translate(15,315) rotate(180) translate(-15,-315)" x="10" y="310" width="10" height="10"/>
+        <rect transform="translate(25,305) rotate(180) translate(-25,-305)" x="20" y="300" width="10" height="10"/>
+        <rect transform="translate(5,305) rotate(180) translate(-5,-305)" x="0" y="300" width="10" height="10"/>
+        <rect transform="translate(15,335) rotate(180) translate(-15,-335)" x="10" y="330" width="10" height="10"/>
+        <rect transform="translate(25,325) rotate(180) translate(-25,-325)" x="20" y="320" width="10" height="10"/>
+        <rect transform="translate(5,325) rotate(180) translate(-5,-325)" x="0" y="320" width="10" height="10"/>
+        <rect transform="translate(15,355) rotate(180) translate(-15,-355)" x="10" y="350" width="10" height="10"/>
+        <rect transform="translate(25,345) rotate(180) translate(-25,-345)" x="20" y="340" width="10" height="10"/>
+        <rect transform="translate(5,345) rotate(180) translate(-5,-345)" x="0" y="340" width="10" height="10"/>
+        <rect transform="translate(15,375) rotate(180) translate(-15,-375)" x="10" y="370" width="10" height="10"/>
+        <rect transform="translate(25,365) rotate(180) translate(-25,-365)" x="20" y="360" width="10" height="10"/>
+        <rect transform="translate(5,365) rotate(180) translate(-5,-365)" x="0" y="360" width="10" height="10"/>
+        <rect transform="translate(15,395) rotate(180) translate(-15,-395)" x="10" y="390" width="10" height="10"/>
+        <rect transform="translate(25,385) rotate(180) translate(-25,-385)" x="20" y="380" width="10" height="10"/>
+        <rect transform="translate(5,385) rotate(180) translate(-5,-385)" x="0" y="380" width="10" height="10"/>
+        <g transform="translate(15,129.96) rotate(180) translate(-15,-129.96) translate(0,109.94)">
+          <rect x="0" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/>
+          <rect x="10" y="10.03" width="10" height="10"/><rect x="10" y="30.03" width="10" height="10"/>
+          <rect x="0" y="20.03" width="10" height="10"/><rect x="20" y="20.03" width="10" height="10"/>
+        </g>
+        <g transform="translate(15,189.96) rotate(180) translate(-15,-189.96) translate(0,149.94)">
+          <rect x="0" y="40" width="10" height="10"/><rect x="20" y="40" width="10" height="10"/>
+          <rect x="10" y="50.03" width="10" height="10"/><rect x="10" y="70.03" width="10" height="10"/>
+          <rect x="0" y="60.03" width="10" height="10"/><rect x="20" y="60.03" width="10" height="10"/>
+          <rect x="0" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/>
+          <rect x="10" y="10.03" width="10" height="10"/><rect x="10" y="30.03" width="10" height="10"/>
+          <rect x="0" y="20.03" width="10" height="10"/><rect x="20" y="20.03" width="10" height="10"/>
+        </g>
+        <g transform="translate(0,40)">
+          <rect x="0" y="0" width="10" height="10"/><rect x="20" y="0" width="10" height="10"/>
+          <rect x="10" y="10.03" width="10" height="10"/>
+          <rect x="0" y="20.03" width="10" height="10"/><rect x="20" y="20.03" width="10" height="10"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>`;
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const url  = URL.createObjectURL(blob);
+  finishLineImg = new Image();
+  finishLineImg.onload = () => { finishLineReady = true; URL.revokeObjectURL(url); };
+  finishLineImg.src = url;
+}
+loadFinishLineImg();
+
+// ─────────────────────────────────────────────────────────────
+// OFFSCREEN DUCK CACHE
+// Each unique color is pre-rendered once to an OffscreenCanvas.
+// drawImage() per frame is ~10x faster than re-pathing the shape.
+// ─────────────────────────────────────────────────────────────
+const duckCache = new Map();
+
+function buildDuckCache() {
+  duckCache.clear(); // always rebuild so size changes take effect
+  for (const color of DUCK_COLORS) {
+    const oc = new OffscreenCanvas(DUCK_W, DUCK_H);
+    renderDuck(oc.getContext('2d'), DUCK_W, DUCK_H, color);
+    duckCache.set(color, oc);
+  }
+}
+
+function renderDuck(c, w, h, color) {
+  c.fillStyle = color;
+  // Body
+  c.beginPath(); c.ellipse(w*.38, h*.62, w*.30, h*.22, 0, 0, Math.PI*2); c.fill();
+  // Head
+  c.beginPath(); c.ellipse(w*.68, h*.36, w*.18, h*.18, 0, 0, Math.PI*2); c.fill();
+  // Tail
+  c.save(); c.translate(w*.10, h*.60); c.rotate(Math.PI/9);
+  c.beginPath(); c.ellipse(0,0,w*.09,h*.07,0,0,Math.PI*2); c.fill(); c.restore();
+  // Wing accent
+  c.fillStyle = 'rgba(0,0,0,0.13)';
+  c.save(); c.translate(w*.33, h*.58); c.rotate(-Math.PI/18);
+  c.beginPath(); c.ellipse(0,0,w*.16,h*.09,0,0,Math.PI*2); c.fill(); c.restore();
+  // Bill
+  c.fillStyle = '#FF8C00';
+  c.beginPath(); c.ellipse(w*.84, h*.38, w*.10, h*.07, 0,0,Math.PI*2); c.fill();
+  // Eye
+  c.fillStyle = '#1a1a2e';
+  c.beginPath(); c.arc(w*.74, h*.29, w*.04, 0, Math.PI*2); c.fill();
+  // Highlight
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(w*.76, h*.27, w*.016, 0, Math.PI*2); c.fill();
+  // Splash
+  c.fillStyle = 'rgba(255,255,255,0.20)';
+  c.beginPath(); c.ellipse(w*.38, h*.84, w*.28, h*.06, 0,0,Math.PI*2); c.fill();
+}
+
+// ─────────────────────────────────────────────────────────────
+// CLOUDS  (pure data objects, drawn on canvas — no DOM)
+// ─────────────────────────────────────────────────────────────
+const PUFF_DEFS = [
+  {cx:.10,cy:.78,r:.22}, {cx:.28,cy:.55,r:.28}, {cx:.50,cy:.42,r:.33},
+  {cx:.70,cy:.52,r:.26}, {cx:.86,cy:.74,r:.20}, {cx:.48,cy:.90,r:.46,sy:.55},
+];
+let clouds = [];
+
+function makeCloudDatum(trackW, midScreen) {
+  const skyH = getTrackH() * SKY_FRAC;
+  const W    = 20 + Math.random() * 45;
+  const H    = W * (0.40 + Math.random() * 0.30);
+  const maxTop = skyH - H - 4;
+  return {
+    x: midScreen ? Math.random() * trackW * 0.85 : trackW + W + 10,
+    y: 2 + Math.random() * Math.max(2, maxTop - 2),
+    w: W, h: H,
+    speed:       8 + Math.random() * 14,
+    alpha:       0,
+    targetAlpha: 0.85 + Math.random() * 0.15,
+    fadeDelay:   midScreen ? Math.random() * 3 : 0,
+  };
+}
+
+function initClouds(trackW) {
+  clouds = [];
+  const n = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < n; i++) clouds.push(makeCloudDatum(trackW, i < Math.floor(n / 2)));
+}
+
+function updateClouds(dt, trackW) {
+  for (let i = 0; i < clouds.length; i++) {
+    const c = clouds[i];
+    c.x -= c.speed * dt;
+    if (c.fadeDelay > 0) { c.fadeDelay -= dt; }
+    else if (c.alpha < c.targetAlpha) { c.alpha = Math.min(c.targetAlpha, c.alpha + dt * 0.4); }
+    if (c.x < -(c.w + 10)) clouds[i] = makeCloudDatum(trackW, false);
+  }
+}
+
+function drawClouds(ctx) {
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  for (const c of clouds) {
+    if (c.alpha <= 0.01) continue;
+    ctx.globalAlpha = c.alpha;
+    for (const p of PUFF_DEFS) {
+      const d  = p.r * c.w * 2;
+      const sy = p.sy || 1;
+      ctx.beginPath();
+      ctx.ellipse(c.x + p.cx * c.w, c.y + p.cy * c.h, d/2, (d*sy)/2, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────────────────────
+// DUCK DATA
+// ─────────────────────────────────────────────────────────────
+let ducks = [];
+
+function buildDucks(names) {
+  // Fisher-Yates shuffle — each permutation is equally likely.
+  // Math.random() is used as the source of randomness: it returns a
+  // pseudo-random float in [0, 1) via the browser's built-in PRNG
+  // (typically xorshift128+ or similar). It is NOT cryptographically
+  // secure, but is perfectly fair for a duck race.
+  const shuffled = names.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  const sz = getDuckSize(shuffled.length);
+  DUCK_W = sz; DUCK_H = sz;
+  buildDuckCache();
+  ducks = shuffled.map((name, i) => ({
+    name,
+    color:         DUCK_COLORS[i % DUCK_COLORS.length],
+    bobOffset:     Math.random() * Math.PI * 2,
+    baseSpeed:     0.4 + Math.random() * 0.5,
+    pos:           8 + Math.random() * 30,
+    energy:        1.0,
+    sprinting:     false,
+    sprintTimer:   0,
+    sprintDuration:0,
+    sprintCooldown:0,
+    restTimer:     0,
+    fallSpeed:     60,
+    leadTime:      0,
+    eliminated:    false,
+    retreatSpeed:  0,
+    retreatAcc:    1.025,
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────
+// CANVAS & DRAWING
+// ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('race-canvas');
+let ctx, trackW, trackH, waterY, laneH, riverOffset = 0;
+// Name tag font size scales with duck size
+function getTagFontSize() { return Math.max(7, Math.round(DUCK_W * 0.23)); }
+
+function setupCanvas() {
+  trackW = window.innerWidth;
+  trackH = getTrackH();
+  canvas.width  = trackW;
+  canvas.height = trackH;
+  canvas.style.height = trackH + 'px';
+  ctx    = canvas.getContext('2d');
+  waterY = Math.round(trackH * SKY_FRAC);
+  laneH  = Math.max(1, (trackH - waterY) / Math.max(ducks.length, 1));
+}
+
+function drawBackground() {
+  // Sky
+  const g = ctx.createLinearGradient(0,0,0,waterY);
+  g.addColorStop(0,'#87CEEB'); g.addColorStop(1,'#B0E2FF');
+  ctx.fillStyle = g; ctx.fillRect(0,0,trackW,waterY);
+  // River stripes
+  const colors = ['#1E90FF','#4DAFFF'];
+  let x = -(riverOffset % (STRIPE_W*2)); let t = false;
+  while (x < trackW + STRIPE_W) {
+    ctx.fillStyle = colors[t?1:0];
+    ctx.fillRect(x, waterY, STRIPE_W, trackH - waterY);
+    x += STRIPE_W; t = !t;
+  }
+}
+
+function drawFinishLine(x) {
+  if (x > trackW + 80) return;
+  const waterH = trackH - waterY;
+  const displayW = Math.round(FL_SVG_W * waterH / FL_SVG_H);
+  if (finishLineReady && finishLineImg) {
+    ctx.drawImage(finishLineImg, Math.round(x), waterY, displayW, waterH);
+  } else {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(Math.round(x), waterY, 3, waterH);
+  }
+}
+
+// Name tag text cache — avoid measureText every frame
+const nameWidthCache = new Map();
+function getNameWidth(ctx, name) {
+  if (!nameWidthCache.has(name)) {
+    ctx.font = 'bold 10px Nunito,sans-serif';
+    nameWidthCache.set(name, ctx.measureText(name).width);
+  }
+  return nameWidthCache.get(name);
+}
+
+function drawDucks(now) {
+  const fontSize = getTagFontSize();
+  const tagH = Math.max(10, Math.round(fontSize * 1.6));
+  const tagPad = Math.max(4, Math.round(fontSize * 0.7));
+  const tagAbove = Math.round(DUCK_H * 0.38);
+  const bobAmp = DUCK_W >= 32 ? 2 : 1;
+  ctx.font = `bold ${fontSize}px Nunito,sans-serif`;
+
+  for (let i = 0; i < ducks.length; i++) {
+    const d = ducks[i];
+    if (d.eliminated && d.pos < -(DUCK_W + 20)) continue;
+
+    const bob  = Math.sin(now/400 + d.bobOffset) * bobAmp;
+    const tilt = Math.sin(now/600 + d.bobOffset) * 3;
+    const cy   = waterY + (i + 0.5) * laneH;
+    const x    = d.pos;
+    const y    = cy - DUCK_H * 0.5;
+
+    ctx.save();
+    ctx.translate(x + DUCK_W/2, y + DUCK_H/2 + bob);
+    ctx.rotate(tilt * Math.PI/180);
+    const img = duckCache.get(d.color);
+    if (img) ctx.drawImage(img, -DUCK_W/2, -DUCK_H/2, DUCK_W, DUCK_H);
+    ctx.restore();
+
+    // Name tag — only draw if duck is large enough to bother (>= 20px)
+    if (DUCK_W >= 20) {
+      const label = d.name.length > 12 ? d.name.slice(0,11)+'…' : d.name;
+      const tw = getNameWidth(ctx, label);
+      const bw = tw + tagPad*2, bh = tagH;
+      const bx = x + DUCK_W/2 - bw/2, by = y - tagAbove + bob;
+      const r = Math.min(5, bh/2);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath();
+      ctx.moveTo(bx+r,by); ctx.lineTo(bx+bw-r,by);
+      ctx.quadraticCurveTo(bx+bw,by,bx+bw,by+r);
+      ctx.lineTo(bx+bw,by+bh-r);
+      ctx.quadraticCurveTo(bx+bw,by+bh,bx+bw-r,by+bh);
+      ctx.lineTo(bx+r,by+bh);
+      ctx.quadraticCurveTo(bx,by+bh,bx,by+bh-r);
+      ctx.lineTo(bx,by+r);
+      ctx.quadraticCurveTo(bx,by,bx+r,by); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillText(label, bx + tagPad, by + bh - Math.round(fontSize * 0.35));
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// PHYSICS
+// ─────────────────────────────────────────────────────────────
+function simulateDucks(dt, now, remaining, frontZone, elapsed = 0) {
+  const racePct  = elapsed / selectedSeconds;
+  const isLong   = selectedSeconds >= 60;
+
+  // For long races, gradually ramp the offscreen allowance:
+  // starts at 20% at race start, reaches 50% by 75% of race elapsed.
+  // Short races always stay at 20%.
+  let offscreenPct = 0.20;
+  if (isLong && racePct >= 0.50) {
+    // Linear ramp: 20% at racePct=0.50 → 50% at racePct=0.75, then holds at 50%
+    const t = Math.min((racePct - 0.50) / 0.25, 1.0);
+    offscreenPct = 0.20 + t * 0.30;
+  }
+
+  const active       = ducks.filter(d => !d.eliminated);
+  const byPosAsc     = active.slice().sort((a,b) => a.pos - b.pos);
+  const byPosDesc    = byPosAsc.slice().reverse();
+  const maxOffscreen = Math.floor(active.length * offscreenPct);
+  const offscreenSet = new Set(byPosAsc.slice(0, maxOffscreen).map(d => d.name));
+  const nearFront    = frontZone * 0.70;
+  const nearFrontN   = active.filter(d => d.pos >= nearFront).length;
+  const maxLead      = selectedSeconds * 0.10;
+
+  // Top-3 timer — boot any duck that's been in the top 3 for more than 10 seconds
+  const TOP3_MAX = 10; // seconds
+  byPosDesc.forEach((d, i) => {
+    if (i < 3) {
+      d.top3Time = (d.top3Time || 0) + dt;
+    } else {
+      d.top3Time = 0; // reset once they drop out of top 3
+    }
+    // Also keep leadTime on the leader for the 10%-of-race cap
+    d.leadTime = i === 0 ? (d.leadTime || 0) + dt : 0;
+  });
+
+  // Boot any top-3 duck that's overstayed, one at a time (avoid cascading all at once)
+  const medianPos = byPosAsc.length > 1
+    ? byPosAsc[Math.floor(byPosAsc.length * 0.5)].pos
+    : 0;
+
+  for (let rank = 0; rank < Math.min(3, byPosDesc.length); rank++) {
+    const d = byPosDesc[rank];
+    if (!d || d.restTimer > 0) continue;
+    const timeLimit = rank === 0 ? Math.min(TOP3_MAX, maxLead) : TOP3_MAX;
+    const timeInSpot = rank === 0 ? Math.max(d.top3Time, d.leadTime) : d.top3Time;
+    if (timeInSpot >= timeLimit) {
+      d.top3Time  = 0;
+      d.leadTime  = 0;
+      d.sprinting = false;
+
+      // Fall toward mid-pack — land between 50–80% of median position
+      d.fallTarget = medianPos * (0.5 + Math.random() * 0.3);
+      d.fallSpeed  = 130 + Math.random() * 110; // 130–240 px/s
+      d.restTimer  = 4   + Math.random() * 5;   // 4–9 seconds
+      d.sprintCooldown = 7 + Math.random() * 6;
+      d.energy     = 0.05;
+      d.comeback   = Math.random() < 0.20;
+
+      break; // only boot one per frame to avoid all top-3 dropping simultaneously
+    }
+  }
+
+  for (let i = 0; i < ducks.length; i++) {
+    const d = ducks[i];
+    if (d.eliminated) continue;
+    if (d.sprintCooldown > 0) d.sprintCooldown -= dt;
+
+    // Rest — fall back, stop at fallTarget if set
+    if (d.restTimer > 0) {
+      d.restTimer -= dt;
+      d.pos -= dt * d.fallSpeed;
+
+      // Clamp: don't fall further than the designated target
+      if (d.fallTarget !== undefined && d.pos <= d.fallTarget) {
+        d.pos = d.fallTarget;
+        d.restTimer = 0; // stop resting early once target reached
+      }
+
+      if (!offscreenSet.has(d.name)) d.pos = Math.max(0, d.pos);
+      d.energy = Math.min(1, d.energy + dt*0.18);
+
+      // When rest ends, apply comeback burst if flagged
+      if (d.restTimer <= 0 && d.comeback) {
+        d.comeback = false;
+        d.energy = 1.0;
+        d.sprintCooldown = 0;
+        d.sprinting = true;
+        d.sprintDuration = 3 + Math.random() * 3; // long strong sprint
+        d.sprintTimer = 0;
+      }
+      continue;
+    }
+
+    const rank = byPosDesc.indexOf(d);
+    const crowded = nearFrontN >= 2 && d.pos >= nearFront && rank >= 2;
+
+    // Sprint decision
+    if (remaining <= 1) {
+      if (d.sprinting) { d.sprinting = false; d.sprintCooldown = 99; }
+    } else if (!d.sprinting && d.sprintCooldown <= 0 && d.energy > 0.45) {
+      const rf = rank / Math.max(1, byPosDesc.length-1);
+      if (Math.random() < 0.003 + rf*0.025) {
+        d.sprinting = true; d.sprintDuration = 1.8+Math.random()*3; d.sprintTimer = 0;
+      }
+    }
+
+    let speed;
+    if (d.sprinting) {
+      d.sprintTimer += dt; speed = d.baseSpeed*180; d.energy -= dt*0.40;
+      if (crowded) {
+        d.sprinting=false; d.fallSpeed=50+Math.random()*80; d.restTimer=2.5+Math.random()*4;
+        d.sprintCooldown=4+Math.random()*5; d.energy=Math.max(0.05,d.energy-0.2); continue;
+      }
+      if (d.sprintTimer >= d.sprintDuration || d.energy <= 0.05) {
+        d.sprinting=false; d.sprintCooldown=3+Math.random()*5;
+        if (d.energy <= 0.1) { d.fallSpeed=40+Math.random()*80; d.restTimer=3+Math.random()*4; d.energy=0.05; }
+      }
+    } else {
+      speed = d.baseSpeed*(30 + Math.sin(now/1500+d.bobOffset)*15);
+      d.energy = Math.min(1, d.energy + dt*0.08);
+      if (crowded) { d.fallSpeed=25+Math.random()*40; d.restTimer=1.5+Math.random()*2.5; continue; }
+    }
+
+    d.pos += dt * speed;
+    if (d.pos >= frontZone) {
+      d.pos = frontZone;
+      if (d.sprinting) { d.sprinting=false; d.fallSpeed=30+Math.random()*60; d.restTimer=1.5+Math.random()*3; d.sprintCooldown=4+Math.random()*4; }
+    }
+    if (!offscreenSet.has(d.name)) d.pos = Math.max(0, d.pos);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// RACE LOOP
+// ─────────────────────────────────────────────────────────────
+let selectedSeconds = 60;
+let raceOver = false, finishTriggered = false;
+let startTime, lastTick;
+let winnerDuck=null, winnerPos=0, winnerLastT=0;
+let glideStartPos=0, glideEndPos=0, glideStartT=0;
+const GLIDE_DUR = 400; // ms
+const FINISH_DEST_PCT = 0.50;
+
+document.querySelectorAll('.timer-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.timer-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedSeconds = parseInt(btn.dataset.seconds);
+  });
+});
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  const names = document.getElementById('names-input').value.trim()
+    .split('\n').map(n=>n.trim()).filter(Boolean);
+  if (!names.length) return;
+  buildDucks(names);
+  nameWidthCache.clear(); // clear cache since font size may have changed
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('race-screen').style.display = 'flex';
+  startRace();
+});
+
+document.getElementById('play-again-btn').addEventListener('click', resetToSetup);
+
+function startRace() {
+  setupCanvas();
+  initClouds(trackW);
+  raceOver = false; finishTriggered = false;
+  winnerDuck = null; winnerPos = 0;
+  startTime = lastTick = performance.now();
+  requestAnimationFrame(mainLoop);
+}
+
+function mainLoop(now) {
+  const dt = Math.min((now - lastTick) / 1000, 0.05);
+  lastTick = now;
+
+  const elapsed    = (now - startTime) / 1000;
+  const remaining  = Math.max(0, selectedSeconds - elapsed);
+  const progress   = Math.min(elapsed / selectedSeconds, 1);
+  const finishDest = trackW * FINISH_DEST_PCT;
+  const finishX    = (trackW * 1.1 + 60) + (finishDest - (trackW * 1.1 + 60)) * progress;
+  const frontZone  = Math.min(trackW * 0.45, finishX - DUCK_W - 20);
+
+  riverOffset += dt * STRIPE_W * 0.5;
+  updateClouds(dt, trackW);
+
+  // Timer UI
+  const timerEl = document.getElementById('timer-display');
+  timerEl.textContent = formatTime(Math.ceil(remaining));
+  timerEl.classList.toggle('urgent', remaining <= 10 && remaining > 0);
+
+  // Draw everything in one pass
+  drawBackground();
+  drawClouds(ctx);
+  drawFinishLine(finishX);
+  simulateDucks(dt, now, remaining, frontZone, elapsed);
+  drawDucks(now);
+
+  if (remaining <= 0 && !finishTriggered) {
+    finishTriggered = true;
+    beginFinish(finishDest, now);
+    return;
+  }
+
+  requestAnimationFrame(mainLoop);
+}
+
+function beginFinish(finishDest, now) {
+  const winner = ducks.reduce((b,d) => d.pos > b.pos ? d : b, ducks[0]);
+  winnerDuck  = winner;
+  winnerPos   = winner.pos;   // start from wherever the duck naturally is
+  winnerLastT = now;
+  raceOver    = true;
+
+  ducks.forEach(d => {
+    if (d === winner) return;
+    d.eliminated   = true;
+    d.retreatSpeed = 3 + Math.random() * 4;
+    d.retreatAcc   = 1.025;
+  });
+
+  requestAnimationFrame(crossLoop);
+}
+
+function crossLoop(now) {
+  const dt = Math.min((now - winnerLastT)/1000, 0.05);
+  winnerLastT = now;
+  riverOffset += dt * STRIPE_W * 0.5;
+  updateClouds(dt, trackW);
+
+  winnerPos += dt * 160;
+  winnerDuck.pos = winnerPos;
+  retreatLosers();
+
+  drawBackground(); drawClouds(ctx); drawFinishLine(trackW * FINISH_DEST_PCT); drawDucks(now);
+
+  if (winnerPos < trackW + 80) { requestAnimationFrame(crossLoop); }
+  else {
+    document.getElementById('winner-name').textContent = winnerDuck.name;
+    document.getElementById('winner-banner').classList.add('show');
+  }
+}
+
+function retreatLosers() {
+  for (const d of ducks) {
+    if (d === winnerDuck || !d.eliminated) continue;
+    if (d.pos > -(DUCK_W + 20)) { d.pos -= d.retreatSpeed; d.retreatSpeed *= d.retreatAcc; }
+  }
+}
+
+function formatTime(s) {
+  const m = Math.floor(s/60);
+  return `${m}:${String(s%60).padStart(2,'0')}`;
+}
+
+function resetToSetup() {
+  document.getElementById('winner-banner').classList.remove('show');
+  document.getElementById('race-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('timer-display').classList.remove('urgent');
+  ducks=[]; raceOver=false; finishTriggered=false;
+}
+</script>
+</body>
+</html>
